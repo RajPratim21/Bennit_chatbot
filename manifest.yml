@@ -1,0 +1,49 @@
+---
+declared-services:
+  conversation-service:
+    label: conversation
+    plan: free
+  speech-to-text-service:
+    label: speech_to_text
+    plan: standard
+  text-to-speech-service:
+    label: text_to_speech
+    plan: standard
+applications:
+- name: Bennit-ai
+  command: npm start
+  path: .
+  memory: 256M
+  instances: 1
+  disk_quota: 1024M
+  services:
+  - Bennit-Conversation-jn
+  - Speech to Text-6u
+  - Text to Speech-v6
+  env:
+    NPM_CONFIG_PRODUCTION: false
+    WORKSPACE_ID: 34cc9692-3b8a-421e-8abb-fed57411caaf
+    CONVERSATION_USERNAME: d57e0c20-e299-46ca-a858-1f03e0ba22c8
+    CONVERSATION_PASSWORD: N6oZUPtvOO3E
+    DATABASE_NAME: eapproddb
+
+    ## Cloudant Database details
+    CLOUDANT_URL: https://8edfce50-d896-46f5-b770-e9c8e866161b-bluemix:534cf30964dd1da8e8d8111d651a06be90fc424674c585a5fb154f40b2b2e897@8edfce50-d896-46f5-b770-e9c8e866161b-bluemix.cloudant.com
+    LOG_USER: 8edfce50-d896-46f5-b770-e9c8e866161b-bluemix
+    LOG_PASS: 534cf30964dd1da8e8d8111d651a06be90fc424674c585a5fb154f40b2b2e897
+    ### For the Database name: Only lowercase letters (a-z), digits (0-9), and any of the characters _, $, (, ), +, -, and / are allowed.
+
+    ## Speech to text: Service name Speech to Text-6u
+    SPEECH_TO_TEXT_PASSWORD: oTvx44LInAyp
+    SPEECH_TO_TEXT_USERNAME: 42e6f502-0e0b-4671-856b-49918dec96e8
+
+    ## Text to Speech Service name Text to Speech-v6
+    TEXT_TO_SPEECH_PASSWORD: tlmGq4yssC3z
+    TEXT_TO_SPEECH_USERNAME: 072cd2a1-9372-4d37-bea8-48729c6e07c8
+
+    ## Rank Retrieve
+    RANKRETRIEVE_USERNAME: 1f627047-1222-4a9c-97e3-ab2972bf0d9a
+    RANKRETRIEVE_PASSWORD: COnqJFdIXL8P
+    RANKRETRIEVE_CLUSTER_ID: sc85a766f1_6d03_4d1e_9bdb_01061ffb1154
+    RANKRETRIEVE_COLLECTION_NAME: Tire_Manufacturing
+    RANKER_ID: c852c8x19-rank-920

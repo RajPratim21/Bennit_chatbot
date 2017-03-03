@@ -165,7 +165,7 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', {failureRedirect: '/'}),
     function (req, res) {
       //change made
-      setupResponseFunctions();
+      //setupResponseFunctions();
       console.log(req.user);
         // gDocId = req.user.id;
         // console.log("id: "+gDocId);.
@@ -685,7 +685,7 @@ function sendLoginDetails(payload, req, res) {
 }
 
 /// Sends the payload to the Conversation Service
-function sendToConversationService(payload,  res) {
+function sendToConversationService(payload,  sender, res) {
   //payload.context.name = "GetnameHere";
   console.log("Name given to watson");
   console.log(payload.context.name);
@@ -741,7 +741,7 @@ function sendToConversationService(payload,  res) {
               console.log('payloadddddddddddddddddddd msggggggg  1 '+res1234.output.text);
                 //responseHandler(JSON.parse(updateMessage(payload, data)));
 
-              return res1234;
+             // return res1234;
           }
           }
         );
@@ -782,7 +782,7 @@ function sendToConversationService(payload,  res) {
                 console.log('payloadddddddddddddddddddd msggggggg 2  '+res1234.output.text);
                 responseHandler(JSON.parse(updateMessage(payload, data)));
 
-                return res1234;
+               // return res1234;
               //return res.json(updateMessage(payload, data));
             }
           }
@@ -816,7 +816,7 @@ function sendToConversationService(payload,  res) {
               });
               res1234 = updateMessage(payload, data,sender);
               console.log('payloadddddddddddddddddddd msggggggg 3  '+res1234.output.text);
-              responseHandler(JSON.parse(updateMessage(payload, data)));
+              //responseHandler(JSON.parse(updateMessage(payload, data)));
 
               return res1234;
               //return res.json(updateMessage(payload, data));
@@ -832,7 +832,7 @@ function sendToConversationService(payload,  res) {
   */
   
         //return res.json(updateMessage(payload, data));}
-        responseHandler(JSON.parse(updateMessage(payload, data)));
+       // responseHandler(JSON.parse(updateMessage(payload, data)));
 
         return res1234;
       }
@@ -843,7 +843,7 @@ function sendToConversationService(payload,  res) {
   */
   
         console.log('payloadddddddddddddddddddd msggggggg 5  '+data.output.text);
-       responseHandler(JSON.parse(updateMessage(payload, data)));
+  //     responseHandler(JSON.parse(updateMessage(payload, data)));
 
         return res1234;
       //return res.json(updateMessage(payload, data));

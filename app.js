@@ -1,4 +1,4 @@
-/**
+ /**
  * Copyright 2016 IBM Corp. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -234,22 +234,26 @@ var context;
 var resp =''
 var res1234
 var message_aagya;
+var fb_sender_id;
 
 app.post('/webhook/', function (req, res) {
 
   //console.log("Reached");  
   //user = require('./index');
-  console.log('----%%%%%%%%%%%%%&&&&&&&&&&&&&&&&@@@@@'+ current_user+ 'csac '+current_user.name);
+  
+  //console.log('----%%%%%%%%%%%%%&&&&&&&&&&&&&&&&@@@@@'+ current_user+ 'csac '+current_user.name);
   let messaging_events = req.body.entry[0].messaging
   for (let i = 0; i < messaging_events.length; i++) {
     let event = req.body.entry[0].messaging[i]
     let sender = event.sender.id;
+    fb_sender_id = sender;
     // console.log("sender " +sender );
     if (event.message && event.message.text) {
       let text = event.message.text
    // Api.postConversationMessage(text);
        var data = {'input': {'text': text}};
       if (context) {
+        console.log('@@@@@@@@@@@################$$$$$$$$$$$$$$$$$$$$$*(@)@)@)@ context being set')
         data.context = context;
       }
      // res1234 ='';
@@ -259,18 +263,19 @@ app.post('/webhook/', function (req, res) {
         console.log("welcome to chatbot")
         sendGenericMessage(sender)
         continue
-      } 
-        var result = BOT_testmessage(data, sender, resp);
-         sendTextMessage(sender, "Text received, echo: " + text);
-        //sendTextMessage(sender, result.output.text);
-       // console.log('Response from text ------------- '+ result );
-}
-    if (event.postback) {
-      let text = JSON.stringify(event.postback);
-      //passport.authenticate('google', { scope: ['profile', 'email'] });
-      sendTextMessage(sender, "Postback received: " + text.substring(0, 200), token)
-      continue
-    }
+      }
+      if(!current_user)
+      {
+       sendGenericMessage(sender)
+       sendTextMessage(sender, "You can sign up by pressing sign me up "+ 
+              "which will sign you via Google Oauth, and you need to combe back to messenger");
+       
+      }
+      else{ 
+          var result = BOT_testmessage(data, sender, resp);
+      }
+
+    } 
   }
   res.sendStatus(200)
 })
@@ -314,11 +319,12 @@ function sendGenericMessage(sender) {
           "buttons": [{
             "type": "web_url",
             "url": "http://bennitfbbot.mybluemix.net/auth/google",
+            "title": "sign up and continue"
+          },
+            {
+            "type": "web_url",
+            "url": "http://bennitailog.mybluemix.net/",
             "title": "Actual website"
-          }, {
-            "type": "postback",
-            "title": "signup & continue",
-            "payload": "Payload for first element in a generic bubble",
           }],
         },
         ]
@@ -520,31 +526,33 @@ app.post('/testpost_old', function (req, res) {
         //payload.input = {Input:"hello test"};
         // Send the input to the conversation service
         return sendToConversationService(payload, sender ,res);
+        }
+    }
+        else /// If there is no context in the request this is the first interaction of the session.
+        /// query the database and populate the context*/
+        {
+          console.log("%%%%%%%%%%%%%%3");
+
+           payload.context.name = current_user.name//req.session.user.name;
+           payload.context.email = current_user.email;//req.session.user.email;
+           payload.context._id = current_user.clientid;//req.session.user.clientid;
+           console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Auth id: "+ current_user.clientid);
+          // payload.context.area = "";
+          // payload.context.role = "";
+          // payload.context.machine = "";
+          // payload.context.deviceid ="";
+          // payload.context.nodevice = false;
+          return  getContextForUser(bennitscoremap, payload, res, cloudantDb, sendToConversationService);
+          
+        }
+  
+    }       else {
+            console.log("%%%%%%%%%%%%%%4");
+            console.log(body);
+
+            // Send the input to the conversation service
+            return sendToConversationService(payload,sender,  res);
       }
-    }
-    else /// If there is no context in the request this is the first interaction of the session.
-    /// query the database and populate the context*/
-    {
-      console.log("%%%%%%%%%%%%%%3");
-
-       payload.context.name = current_user.name//req.session.user.name;
-       payload.context.email = current_user.email;//req.session.user.email;
-       payload.context._id = current_user.clientid;//req.session.user.clientid;
-       console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Auth id: "+ current_user.clientid);
-      // payload.context.area = "";
-      // payload.context.role = "";
-      // payload.context.machine = "";
-      // payload.context.deviceid ="";
-      // payload.context.nodevice = false;
-      return getContextForUser(bennitscoremap, payload, res, cloudantDb, sendToConversationService);
-    }
-  } else {
-    console.log("%%%%%%%%%%%%%%4");
-    console.log(body);
-
-    // Send the input to the conversation service
-    return sendToConversationService(payload,sender,  res);
-  }
 }
 
 /*app.post('/testpost', function(req, res){
@@ -689,15 +697,15 @@ function sendToConversationService(payload,  sender, res) {
   //payload.context.name = "GetnameHere";
   console.log("Name given to watson");
   console.log(payload.context.name);
-  conversation.message(payload, function (err, data) {
+  conversation.message(payload, function (err, data_response) {
     if (err) {
       console.error(JSON.stringify(err));
       return res.status(err.code || 500).json(err);
     }
 
-    if (data.context.flowcontrol) {
-      if (data.context.flowcontrol.whichmachinesdown == true) {
-        data.context.flowcontrol.whichmachinesdown = false;
+    if (data_response.context.flowcontrol) {
+      if (data_response.context.flowcontrol.whichmachinesdown == true) {
+        data_response.context.flowcontrol.whichmachinesdown = false;
         console.log("Query plant status update");
         /// This list should be from a DB query
         var listMachineIds = ["Press01", "Mixer01", "BeadMachine01"];
@@ -719,25 +727,27 @@ function sendToConversationService(payload,  sender, res) {
              
               console.log('resultsts1233@####################### '+JSON.stringify(result));
               /// The second element in the async series results is the Machine/Plant status.
-              data.output.text = "";
+              data_response.output.text = "";
               var aMachineIsDown = false;
               result.forEach(function (element, index, array) {
                 if (element.status == "down" || element.status == "Down") {
                   aMachineIsDown = true;
-                  data.output.text = data.output.text + element.machinename + " Status: " + element.status + endOfLine;
-                  data.output.text = data.output.text + " Line: " + element.line + " Area: " + element.area + " Sensors: " + endOfLine + "Temperature: " + element.sensors.temperature + " Humidity: " + element.sensors.humidity + ".           " + endOfLine;
-                  data.output.text = data.output.text + endOfLine + endOfLine;
+                  data_response.output.text = data_response.output.text + element.machinename + " Status: " + element.status + endOfLine;
+                  data_response.output.text = data_response.output.text + " Line: " + element.line + " Area: " + element.area + " Sensors: " + endOfLine + "Temperature: " + element.sensors.temperature + " Humidity: " + element.sensors.humidity + ".           " + endOfLine;
+                  data.output.text = data_response.output.text + endOfLine + endOfLine;
                 }
               });
               var comment = (aMachineIsDown) ? "The following machines are down: " : "Currently no machines are down. Ask about performance for current machine states";
-              data.output.text = comment.concat(data.output.text);
+              data_response.output.text = comment.concat(data_response.output.text);
               //data.output.text = result[1];
               //return res.json(updateMessage(payload, data));
-              res1234 = updateMessage(payload, data, sender);
+              res1234 = updateMessage(payload, data_response, sender);
             /*
   printtinfg the response obtained from watson conversation Response.output
   */
-   
+               
+                context = res1234.context;  
+              
               console.log('payloadddddddddddddddddddd msggggggg  1 '+res1234.output.text);
                 //responseHandler(JSON.parse(updateMessage(payload, data)));
 
@@ -747,8 +757,8 @@ function sendToConversationService(payload,  sender, res) {
         );
        
       }
-      else if (data.context.flowcontrol.performance == true) {
-        data.context.flowcontrol.performance = false;
+      else if (data_response.context.flowcontrol.performance == true) {
+        data_response.context.flowcontrol.performance = false;
         console.log("Query plant status performance");
         var listMachineIds = ["Press01", "Mixer01", "BeadMachine01"];
         async.series(
@@ -766,21 +776,21 @@ function sendToConversationService(payload,  sender, res) {
           function (err, result) {
             if (!err) {
                  console.log('resultsts1233@####################### '+JSON.stringify(result));
-              data.output.text = "Performance report: ";
+              data_response.output.text = "Performance report: ";
               result.forEach(function (element, index, array) {
-                if (data.context.machine == element.machinename) {
-                  data.output.text = data.output.text + element.machinename + " Status: " + element.status + endOfLine;
-                  data.output.text = data.output.text + " Line: " + element.line + " Area: " + element.area + " Sensors: " + endOfLine + "Temperature: " + element.sensors.temperature + " Humidity: " + element.sensors.humidity + ".           " + endOfLine;
-                  data.output.text = data.output.text + endOfLine + endOfLine;
+                if (data_response.context.machine == element.machinename) {
+                  data_response.output.text = data_response.output.text + element.machinename + " Status: " + element.status + endOfLine;
+                  data_response.output.text = data_response.output.text + " Line: " + element.line + " Area: " + element.area + " Sensors: " + endOfLine + "Temperature: " + element.sensors.temperature + " Humidity: " + element.sensors.humidity + ".           " + endOfLine;
+                  data_response.output.text = data_response.output.text + endOfLine + endOfLine;
                 }
               });
                 res1234 = updateMessage(payload, data, sender);
                 /*
   printtinfg the response obtained from watson conversation Response.output
   */
-  
+                 context = res1234.context; 
                 console.log('payloadddddddddddddddddddd msggggggg 2  '+res1234.output.text);
-                responseHandler(JSON.parse(updateMessage(payload, data)));
+                responseHandler(JSON.parse(updateMessage(payload, data_response)));
 
                // return res1234;
               //return res.json(updateMessage(payload, data));
@@ -788,8 +798,8 @@ function sendToConversationService(payload,  sender, res) {
           }
         );
       }
-      else if (data.context.flowcontrol.performancereport == true) {
-        data.context.flowcontrol.performancereport = false;
+      else if (data_response.context.flowcontrol.performancereport == true) {
+        data_response.context.flowcontrol.performancereport = false;
         console.log("Query plant status performance");
         var listMachineIds = ["Press01", "Mixer01", "BeadMachine01"];
         async.series(
@@ -807,17 +817,17 @@ function sendToConversationService(payload,  sender, res) {
           function (err, result) {
             if (!err) {
                  console.log('resultsts1233@####################### '+JSON.stringify(result));
-              data.output.text = "Performance report: ";
+              data_response.output.text = "Performance report: ";
               result.forEach(function (element, index, array) {
-                data.output.text = data.output.text + element.machinename + " Status: " + element.status + endOfLine;
-                data.output.text = data.output.text + " Line: " + element.line + " Area: " + element.area + " Sensors: " + endOfLine + "Temperature: " + element.sensors.temperature + " Humidity: " + element.sensors.humidity + ".           " + endOfLine;
-                data.output.text = data.output.text + endOfLine + endOfLine;
+                data_response.output.text = data_response.output.text + element.machinename + " Status: " + element.status + endOfLine;
+                data_response.output.text = data_response.output.text + " Line: " + element.line + " Area: " + element.area + " Sensors: " + endOfLine + "Temperature: " + element.sensors.temperature + " Humidity: " + element.sensors.humidity + ".           " + endOfLine;
+                data_response.output.text = data_response.output.text + endOfLine + endOfLine;
 
               });
-              res1234 = updateMessage(payload, data,sender);
+              res1234 = updateMessage(payload, data_response,sender);
               console.log('payloadddddddddddddddddddd msggggggg 3  '+res1234.output.text);
               //responseHandler(JSON.parse(updateMessage(payload, data)));
-
+               context = res1234.context; 
               return res1234;
               //return res.json(updateMessage(payload, data));
             }
@@ -825,26 +835,20 @@ function sendToConversationService(payload,  sender, res) {
         );
       }
       else{
-        res1234 = updateMessage(payload, data, sender);
-        console.log('payloadddddddddddddddddddd msggggggg 4  '+res1234.output.text);
-  /*
-  printtinfg the response obtained from watson conversation Response.output
-  */
-  
-        //return res.json(updateMessage(payload, data));}
-       // responseHandler(JSON.parse(updateMessage(payload, data)));
-
+        res1234 = updateMessage(payload, data_response, sender);
+        console.log('payloadddddddddddddddddddd msggggggg 4  '+res1234.context);
+         context = res1234.context; 
         return res1234;
       }
     } else
-    res1234 = updateMessage(payload, data, sender);
+    res1234 = updateMessage(payload, data_response, sender);
   /*
   printtinfg the response obtained from watson conversation Response.output
   */
   
-        console.log('payloadddddddddddddddddddd msggggggg 5  '+data.output.text);
+        console.log('payloadddddddddddddddddddd msggggggg 5  '+data_response.output.text);
   //     responseHandler(JSON.parse(updateMessage(payload, data)));
-
+         context = res1234.context; 
         return res1234;
       //return res.json(updateMessage(payload, data));
        
@@ -857,20 +861,9 @@ function updateMessage(payload, response, sender) {
    * Here I am printing all the data recieved one by one basically the response.log_messages, response.output.text
    * and response.intents.intent and confidence, 
    * / */
-  console.log('##############^^^^^^^^^^^^^^^^^^  response from conversation '+response.input)
+  console.log('##############^^^^^^^^^^^^^^^^^^  response from conversation '+sender+"   " +response.input)
    // + ' '+ response.intents +' out  '+ response.output.text);
-  for (let i = 0; i <response.output.log_messages.length; i++)
-        console.log('log_Message '+response.output.log_messages[i] );
-     
-  for (let i = 0; i <response.output.text.length; i++)
-        console.log('Text _Message '+response.output.text[i] );
-     
- for (let i = 0; i <response.intents.length; i++)
-  {
-        console.log('Intent _Message '+response.intents[i].intent + ' confidence'+ response.intents[i].confidence );
-        message_aagya = response.intents[i].intent
-}
-  
+    
    
    // console.log(response);
     //sendTextMessage(sender, 'output ');
@@ -938,6 +931,37 @@ function updateMessage(payload, response, sender) {
     buildUpUserInteraction(response.context, cloudantDb);
 
   }
+
+  for (let i = 0; i <response.output.log_messages.length; i++)
+        console.log('log_Message '+response.output.log_messages[i] );
+     
+  for (let i = 0; i <response.output.text.length; i++){
+        if(response.output.text[i].length<640)
+        {
+            sendTextMessage(fb_sender_id,response.output.text[i] );
+            console.log('Text _Message '+response.output.text[i] );
+        }
+        else
+        {
+            //workaround for longer strings.
+            var N = response.output.text[i].length;
+            var f = 640;
+            var p=Math.floor(N/f);
+            var p_rem=N%f;
+            for(var k_l=0;k_l<p;k_l++){
+
+                 sendTextMessage(fb_sender_id,response.output.text[i].toString().substr(f*k_l, f));
+               
+         }
+
+        }
+     }
+ for (let i = 0; i <response.intents.length; i++)
+  {
+        console.log('Intent _Message '+response.intents[i].intent + ' confidence'+ response.intents[i].confidence );
+        message_aagya = response.intents[i].intent
+  }
+
   
   return response;
 }
